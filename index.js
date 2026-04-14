@@ -9,6 +9,14 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/", (req, res) => {
+  res
+    .status(200)
+    .send(
+      "Welcome to Gender Classification API",
+    );
+});
+
 app.get("/api", (req, res) => {
   res.status(200).json({
     status: "success",
