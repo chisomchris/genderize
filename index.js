@@ -30,6 +30,12 @@ app.get("/api", (req, res) => {
 });
 
 app.post("/api/profiles", async (req, res) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({
+      status: "error",
+      message: "Request body is missing or empty",
+    });
+  }
   let { name } = req.body;
 
   if (typeof name === "string") {
