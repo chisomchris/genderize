@@ -6,7 +6,6 @@ const { connectDB, Profile } = require("./database");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
 connectDB();
 
 app.use(express.json());
@@ -199,4 +198,16 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => console.log(`Server live on port ${PORT}`));
+// server.js
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`🚀 Server stabilized and running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server due to DB connection:", error);
+  }
+};
+
+startServer();
