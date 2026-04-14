@@ -195,7 +195,7 @@ app.get("/api/classify", async (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     status: "error",
-    message: `The requested endpoint ${req.originalUrl} does not exist.`,
+    message: `The requested ${req.method} method for ${req.originalUrl} does not exist.`,
   });
 });
 
