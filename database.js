@@ -26,7 +26,15 @@ const profileSchema = new mongoose.Schema(
     },
   },
   {
-    toJSON: { virtuals: false },
+    toJSON: {
+      virtuals: false,
+      transform: (doc, ret) => {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
     toObject: { virtuals: false },
   },
 );

@@ -28,6 +28,48 @@ app.get("/api", (req, res) => {
   });
 });
 
+app.get("/api/profiles", async (req, res) => {
+  try {
+    const { gender, age_group, country_id } = req.query;
+    const filter = {};
+
+    if (gender) filter.gender = gender.toLowerCase();
+    if (age_group) filter.age_group = age_group.toLowerCase();
+    if (country_id) filter.country_id = country_id.toUpperCase();
+
+    const profiles = await Profile.find(filter).sort({ created_at: -1 });
+
+    res.status(200).json({
+      status: "success",
+      count: profiles.length,
+      data: profiles,
+    });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+});
+
+app.get("/api/profiles/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const profile = await Profile.findById(id);
+
+    if (!profile) {
+      return res.status(404).json({
+        status: "error",
+        message: "Profile not found",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: profile,
+    });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+});
+
 app.post("/api/profiles", async (req, res) => {
   if (!req.body || Object.keys(req.body).length === 0) {
     return res.status(400).json({
@@ -141,6 +183,27 @@ app.post("/api/profiles", async (req, res) => {
     return res
       .status(500)
       .json({ status: "error", message: "Internal server error" });
+  }
+});
+
+app.delete("/api/profiles/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedProfile = await Profile.findByIdAndDelete(id);
+    if (!deletedProfile) {
+      return res.status(404).json({
+        status: "error",
+        message: `Profile with ID ${id} not found`,
+      });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Delete Error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Internal server error occurred during deletion",
+    });
   }
 });
 
