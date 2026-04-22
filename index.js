@@ -1,14 +1,16 @@
 require("dotenv").config();
 const express = require("express");
-const { uuidv7 } = require("uuidv7");
 const { connectDB, Profile } = require("./database");
-
+const { uuidv7 } = require("uuidv7");
+const parseNLQ = require("./utils/queryParser");
+const buildMongoQuery = require("./utils/queryBuilder");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 connectDB();
 
 app.use(express.json());
+
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -30,21 +32,70 @@ app.get("/api", (req, res) => {
 
 app.get("/api/profiles", async (req, res) => {
   try {
-    const { gender, age_group, country_id } = req.query;
-    const filter = {};
+    await connectDB();
+    let {
+      sort_by = "created_at",
+      order = "desc",
+      page = 1,
+      limit = 10,
+    } = req.query;
 
-    if (gender) filter.gender = gender.toLowerCase();
-    if (age_group) filter.age_group = age_group.toLowerCase();
-    if (country_id) filter.country_id = country_id.toUpperCase();
+    limit = limit <= 50 ? limit : 50;
 
-    const profiles = await Profile.find(filter).sort({ created_at: -1 });
+    const mongoQuery = buildMongoQuery(req.query);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    res.status(200).json({
+    const profiles = await Profile.find(mongoQuery)
+      .sort({ [sort_by]: order === "asc" ? 1 : -1 })
+      .skip(skip)
+      .limit(Math.min(parseInt(limit), 50));
+
+    const total = await Profile.countDocuments(mongoQuery);
+
+    res.json({
       status: "success",
-      count: profiles.length,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
       data: profiles,
     });
-  } catch (error) {
+  } catch (err) {
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+});
+
+// 2. INTELLIGENT SEARCH
+app.get("/api/profiles/search", async (req, res) => {
+  try {
+    await connectDB();
+    const { q, page = 1, limit = 10 } = req.query;
+    if (!q)
+      return res
+        .status(400)
+        .json({ status: "error", message: "Query parameter 'q' is required" });
+
+    const nlqFilters = parseNLQ(q);
+    if (!nlqFilters)
+      return res
+        .status(400)
+        .json({ status: "error", message: "Unable to interpret query" });
+
+    const mongoQuery = buildMongoQuery(nlqFilters);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const profiles = await Profile.find(mongoQuery)
+      .skip(skip)
+      .limit(parseInt(limit));
+    const total = await Profile.countDocuments(mongoQuery);
+
+    res.json({
+      status: "success",
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      data: profiles,
+    });
+  } catch (err) {
     res.status(500).json({ status: "error", message: "Internal server error" });
   }
 });

@@ -2,10 +2,7 @@ const mongoose = require("mongoose");
 
 const profileSchema = new mongoose.Schema(
   {
-    _id: {
-      type: String,
-      required: true,
-    },
+    _id: { type: String, required: true }, // UUID v7
     name: {
       type: String,
       required: true,
@@ -13,21 +10,17 @@ const profileSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    gender: String,
+    gender: { type: String, enum: ["male", "female"] },
     gender_probability: Number,
-    sample_size: Number,
     age: Number,
-    age_group: String,
-    country_id: String,
+    age_group: { type: String, enum: ["child", "teenager", "adult", "senior"] },
+    country_id: { type: String, uppercase: true },
+    country_name: String,
     country_probability: Number,
-    created_at: {
-      type: String,
-      default: () => new Date().toISOString(),
-    },
+    created_at: { type: String, default: () => new Date().toISOString() },
   },
   {
     toJSON: {
-      virtuals: false,
       transform: (doc, ret) => {
         ret.id = ret._id;
         delete ret._id;
@@ -35,54 +28,25 @@ const profileSchema = new mongoose.Schema(
         return ret;
       },
     },
-    toObject: { virtuals: false },
   },
 );
 
-// Use a global variable to cache the connection
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-// const connectDB = async () => {
-//   try {
-//     const conn = await mongoose.connect(process.env.MONGO_URI);
-//     console.log(`MongoDB Connected: ${conn.connection.host}`);
-//   } catch (err) {
-//     console.error(`Error: ${err.message}`);
-//     process.exit(1);
-//   }
-// };
-
 const Profile = mongoose.model("Profile", profileSchema);
 
+let cached = global.mongoose || { conn: null, promise: null };
+global.mongoose = cached;
+
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
+  if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-    };
-
     cached.promise = mongoose
-      .connect(process.env.MONGO_URI, opts)
-      .then((mongoose) => {
-        return mongoose;
-      });
+      .connect(process.env.MONGO_URI, {
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 5000,
+      })
+      .then((m) => m);
   }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
 
