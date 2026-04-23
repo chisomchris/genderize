@@ -40,7 +40,7 @@ app.get("/api/profiles", async (req, res) => {
       limit = 10,
     } = req.query;
 
-    limit = limit <= 50 ? limit : 50;
+    limit = Math.min(parseInt(limit), 50);
 
     const mongoQuery = buildMongoQuery(req.query);
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -48,7 +48,7 @@ app.get("/api/profiles", async (req, res) => {
     const profiles = await Profile.find(mongoQuery)
       .sort({ [sort_by]: order === "asc" ? 1 : -1 })
       .skip(skip)
-      .limit(Math.min(parseInt(limit), 50));
+      .limit(limit);
 
     const total = await Profile.countDocuments(mongoQuery);
 
@@ -68,7 +68,9 @@ app.get("/api/profiles", async (req, res) => {
 app.get("/api/profiles/search", async (req, res) => {
   try {
     await connectDB();
-    const { q, page = 1, limit = 10 } = req.query;
+    let { q, page = 1, limit = 10 } = req.query;
+    limit = Math.min(parseInt(limit), 50);
+
     if (!q)
       return res
         .status(400)
@@ -83,9 +85,7 @@ app.get("/api/profiles/search", async (req, res) => {
     const mongoQuery = buildMongoQuery(nlqFilters);
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const profiles = await Profile.find(mongoQuery)
-      .skip(skip)
-      .limit(parseInt(limit));
+    const profiles = await Profile.find(mongoQuery).skip(skip).limit(limit);
     const total = await Profile.countDocuments(mongoQuery);
 
     res.json({

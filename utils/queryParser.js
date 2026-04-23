@@ -517,6 +517,8 @@ const countryMap = {
   bhutanese: "BT",
   moroccan: "MA",
   "bosnian, herzegovinian": "BA",
+  american: "US",
+  britain: "GB",
 };
 
 const sortedGeoTriggers = Object.keys(countryMap).sort(
